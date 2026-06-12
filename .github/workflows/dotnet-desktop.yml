@@ -44,3 +44,14 @@ jobs:
       run: dotnet build $env:Project_Path -c $env:Configuration
       env:
         Configuration: ${{ matrix.configuration }}
+    
+    # Release new version
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.run_number }}
+        release_name: Release ${{ github.run_number }}
+        draft: false
+        prerelease: false
