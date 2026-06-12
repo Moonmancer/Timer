@@ -177,16 +177,22 @@ public class AddTimerDialog : Form
         finally { _normalizing = false; }
     }
 
-    private static NumericUpDown MakeSpinner(Point loc, int max, int val) => new()
+    private static NumericUpDown MakeSpinner(Point loc, int max, int val)
     {
-        Location = loc,
-        Width = 62,
-        Minimum = 0,
-        Maximum = max,
-        Value = val,
-        BackColor = Color.FromArgb(60, 60, 60),
-        ForeColor = Color.White
-    };
+        var spinner = new NumericUpDown
+        {
+            Location = loc,
+            Width = 62,
+            Minimum = 0,
+            Maximum = max,
+            Value = val,
+            BackColor = Color.FromArgb(60, 60, 60),
+            ForeColor = Color.White
+        };
+        spinner.Enter += (_, _) => spinner.Select(0, spinner.Text.Length);
+        spinner.Click += (_, _) => spinner.Select(0, spinner.Text.Length);
+        return spinner;
+    }
 
     private static Label MakeSection(string text, Point loc) => new()
     {

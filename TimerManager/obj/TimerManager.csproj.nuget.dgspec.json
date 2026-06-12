@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Timer\\TimerManager\\TimerManager.csproj": {}
+    "d:\\Timer\\TimerManager\\TimerManager.csproj": {}
   },
   "projects": {
-    "D:\\Timer\\TimerManager\\TimerManager.csproj": {
+    "d:\\Timer\\TimerManager\\TimerManager.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Timer\\TimerManager\\TimerManager.csproj",
+        "projectUniqueName": "d:\\Timer\\TimerManager\\TimerManager.csproj",
         "projectName": "TimerManager",
-        "projectPath": "D:\\Timer\\TimerManager\\TimerManager.csproj",
+        "projectPath": "d:\\Timer\\TimerManager\\TimerManager.csproj",
         "packagesPath": "C:\\Users\\levin\\.nuget\\packages\\",
-        "outputPath": "D:\\Timer\\TimerManager\\obj\\",
+        "outputPath": "d:\\Timer\\TimerManager\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\levin\\AppData\\Roaming\\NuGet\\NuGet.Config"

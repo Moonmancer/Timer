@@ -8,6 +8,11 @@ public class MainForm : Form
     private readonly List<TimerControl> _timerControls = [];
     private readonly Label _lblEmpty;
 
+    // Drag-to-reorder state
+    private TimerControl? _dragCtrl;
+    private Point _dragAnchor;
+    private bool _dragging;
+
     public MainForm()
     {
         Text = "Timer Manager";
@@ -15,6 +20,7 @@ public class MainForm : Form
         MinimumSize = new Size(200, 150);
         BackColor = Color.FromArgb(28, 28, 28);
         ForeColor = Color.White;
+        DoubleBuffered = true;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
         // Toolbar
@@ -71,6 +77,7 @@ public class MainForm : Form
         {
             Dock = DockStyle.Fill,
             AutoScroll = true,
+            BackColor = Color.FromArgb(28, 28, 28),
             Padding = new Padding(10, 10, 10, 0)
         };
 
@@ -92,8 +99,8 @@ public class MainForm : Form
         _globalTick.Tick += (_, _) => RefreshAll();
         _globalTick.Start();
 
-        // Gespeicherte Timer wiederherstellen
-        foreach (var entry in TimerPersistence.Load())
+        // Gespeicherte Timer wiederherstellen (umgekehrt laden, da BringToFront die Reihenfolge invertiert)
+        foreach (var entry in TimerPersistence.Load().AsEnumerable().Reverse())
             AddTimerControl(entry);
 
         // Fenstereinstellungen wiederherstellen
@@ -121,11 +128,87 @@ public class MainForm : Form
         var ctrl = new TimerControl(entry);
         ctrl.RemoveRequested += (s, _) => RemoveTimer((TimerControl)s!);
         ctrl.EditRequested += (s, _) => EditTimer((TimerControl)s!);
+        ctrl.RegisterDragHandlers(TimerDrag_MouseDown, TimerDrag_MouseMove, TimerDrag_MouseUp);
 
         _timerControls.Insert(0, ctrl);
         _timerListPanel.Controls.Add(ctrl);
         ctrl.BringToFront();
         _lblEmpty.Visible = false;
+    }
+
+    // ── Drag-to-reorder ───────────────────────────────────────────────
+
+    private TimerControl? GetTimerControl(object? sender) =>
+        sender as TimerControl ?? (sender as Control)?.Parent as TimerControl;
+
+    private void TimerDrag_MouseDown(object? sender, MouseEventArgs e)
+    {
+        if (e.Button != MouseButtons.Left) return;
+        _dragCtrl = GetTimerControl(sender);
+        if (_dragCtrl == null) return;
+        var screenPt = ((Control)sender!).PointToScreen(e.Location);
+        _dragAnchor = _dragCtrl.PointToClient(screenPt);
+        _dragging = false;
+    }
+
+    private void TimerDrag_MouseMove(object? sender, MouseEventArgs e)
+    {
+        if (_dragCtrl == null || e.Button != MouseButtons.Left) return;
+
+        var screenPt = ((Control)sender!).PointToScreen(e.Location);
+
+        if (!_dragging)
+        {
+            var anchorScreen = _dragCtrl.PointToScreen(_dragAnchor);
+            if (Math.Abs(screenPt.Y - anchorScreen.Y) < 6) return;
+            _dragging = true;
+            _dragCtrl.IsDragging = true;
+            _dragCtrl.Cursor = Cursors.SizeNS;
+            _dragCtrl.Invalidate();
+        }
+
+        // Mouse Y in panel's scrollable coordinate space
+        var panelPt = _timerListPanel.PointToClient(screenPt);
+        int scrolledY = panelPt.Y - _timerListPanel.AutoScrollPosition.Y;
+
+        // Sort all OTHER timer controls by their current Y position
+        var others = _timerListPanel.Controls
+            .OfType<TimerControl>()
+            .Where(c => c != _dragCtrl)
+            .OrderBy(c => c.Top)
+            .ToList();
+
+        int targetIndex = others.Count; // default: after all others
+        for (int i = 0; i < others.Count; i++)
+        {
+            if (scrolledY < others[i].Top + others[i].Height / 2)
+            {
+                targetIndex = i;
+                break;
+            }
+        }
+
+        _timerListPanel.Controls.SetChildIndex(_dragCtrl, others.Count - targetIndex);
+    }
+
+    private void TimerDrag_MouseUp(object? sender, MouseEventArgs e)
+    {
+        if (_dragCtrl == null) return;
+
+        _dragCtrl.IsDragging = false;
+        _dragCtrl.Cursor = Cursors.Default;
+        _dragCtrl.Invalidate();
+
+        if (_dragging)
+        {
+            // Sync _timerControls list to match the new visual (z-order) sequence
+            _timerControls.Clear();
+            _timerControls.AddRange(_timerListPanel.Controls.OfType<TimerControl>());
+            Save();
+        }
+
+        _dragCtrl = null;
+        _dragging = false;
     }
 
     private void EditTimer(TimerControl ctrl)
