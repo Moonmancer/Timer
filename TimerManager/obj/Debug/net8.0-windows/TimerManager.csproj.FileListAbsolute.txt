@@ -1,0 +1,14 @@
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\TimerManager.GeneratedMSBuildEditorConfig.editorconfig
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\TimerManager.AssemblyInfoInputs.cache
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\TimerManager.AssemblyInfo.cs
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\TimerManager.csproj.CoreCompileInputs.cache
+D:\Timer\TimerManager\bin\Debug\net8.0-windows\TimerManager.exe
+D:\Timer\TimerManager\bin\Debug\net8.0-windows\TimerManager.deps.json
+D:\Timer\TimerManager\bin\Debug\net8.0-windows\TimerManager.runtimeconfig.json
+D:\Timer\TimerManager\bin\Debug\net8.0-windows\TimerManager.dll
+D:\Timer\TimerManager\bin\Debug\net8.0-windows\TimerManager.pdb
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\TimerManager.dll
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\refint\TimerManager.dll
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\TimerManager.pdb
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\TimerManager.genruntimeconfig.cache
+D:\Timer\TimerManager\obj\Debug\net8.0-windows\ref\TimerManager.dll
