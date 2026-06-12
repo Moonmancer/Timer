@@ -11,6 +11,7 @@ public class TimerEntry
 
     private TimeSpan _elapsed = TimeSpan.Zero;
     private DateTime _startedAt;
+    private DateTime _finishedAt;
     private TimerState _state = TimerState.Stopped;
 
     public TimerState State => _state;
@@ -38,8 +39,13 @@ public class TimerEntry
     public void Reset()
     {
         _elapsed = TimeSpan.Zero;
+        _finishedAt = default;
         _state = TimerState.Stopped;
     }
+
+    /// <summary>Gibt zurück, wie lange der Timer bereits abgelaufen ist (nur im Zustand Finished).</summary>
+    public TimeSpan GetOvertime()
+        => _state is TimerState.Finished ? DateTime.Now - _finishedAt : TimeSpan.Zero;
 
     public TimeSpan GetElapsed()
     {
@@ -56,6 +62,7 @@ public class TimerEntry
             if (_state is TimerState.Running)
             {
                 _elapsed += DateTime.Now - _startedAt;
+                _finishedAt = DateTime.Now;
                 _state = TimerState.Finished;
             }
             return TimeSpan.Zero;

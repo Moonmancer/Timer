@@ -11,4 +11,9 @@
     <RootNamespace>TimerManager</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="app.ico" />
+    <EmbeddedResource Include="timer.mp3" />
+  </ItemGroup>
+
 </Project>

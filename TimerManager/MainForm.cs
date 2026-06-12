@@ -1,4 +1,4 @@
-namespace TimerManager;
+﻿namespace TimerManager;
 
 public class MainForm : Form
 {
@@ -21,6 +21,7 @@ public class MainForm : Form
         BackColor = Color.FromArgb(28, 28, 28);
         ForeColor = Color.White;
         DoubleBuffered = true;
+        StartPosition = FormStartPosition.Manual;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
         // Toolbar
@@ -69,8 +70,57 @@ public class MainForm : Form
             UseCompatibleTextRendering = false
         };
         _btnAdd.Click += (_, _) => AddTimer();
-        toolbar.Controls.AddRange([_btnPin, _btnAdd]);
-        toolbar.Resize += (_, _) => _btnAdd.Location = new Point(toolbar.Width - _btnAdd.Width - 10, 10);
+
+        // ── Volume control ────────────────────────────────
+        var _lblVolume = new Label
+        {
+            Text = "100%",
+            ForeColor = Color.FromArgb(180, 180, 195),
+            Font = new Font("Segoe UI", 8, FontStyle.Bold),
+            Width = 40,
+            Height = 30,
+            Location = new Point(54, 10),
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+
+        var _trackVolume = new TrackBar
+        {
+            Minimum = 0,
+            Maximum = 100,
+            Value = 100,
+            TickStyle = TickStyle.None,
+            Height = 30,
+            Location = new Point(90, 10),
+            Cursor = Cursors.Hand,
+            BackColor = Color.FromArgb(36, 36, 36)
+        };
+
+        void ApplyVolume(int pct)
+        {
+            uint v = (uint)(pct * 0xFFFF / 100);
+            uint packed = v | (v << 16);
+            NativeMethods.waveOutSetVolume(IntPtr.Zero, packed);
+        }
+
+        // Gespeicherte Lautstärke laden
+        int savedVolume = TimerPersistence.LoadVolume();
+        _trackVolume.Value = savedVolume;
+        _lblVolume.Text = $"{savedVolume}%";
+        ApplyVolume(savedVolume);
+
+        _trackVolume.ValueChanged += (_, _) =>
+        {
+            _lblVolume.Text = $"{_trackVolume.Value}%";
+            ApplyVolume(_trackVolume.Value);
+            TimerPersistence.SaveVolume(_trackVolume.Value);
+        };
+
+        toolbar.Controls.AddRange([_btnPin, _lblVolume, _trackVolume, _btnAdd]);
+        toolbar.Resize += (_, _) =>
+        {
+            _btnAdd.Location = new Point(toolbar.Width - _btnAdd.Width - 10, 10);
+            _trackVolume.Width = toolbar.Width - _btnAdd.Width - _trackVolume.Left - 20;
+        };
 
         // Scrollable timer list
         _timerListPanel = new Panel
@@ -112,6 +162,10 @@ public class MainForm : Form
                 Location = new Point(win.X, win.Y);
             if (win.Maximized)
                 WindowState = FormWindowState.Maximized;
+        }
+        else
+        {
+            StartPosition = FormStartPosition.CenterScreen;
         }
     }
 

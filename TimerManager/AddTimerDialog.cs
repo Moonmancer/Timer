@@ -88,7 +88,7 @@ public class AddTimerDialog : Form
             using var ofd = new OpenFileDialog
             {
                 Title = "Alarmton wählen",
-                Filter = "WAV-Dateien (*.wav)|*.wav",
+                Filter = "Audiodateien (*.wav;*.mp3)|*.wav;*.mp3|WAV-Dateien (*.wav)|*.wav|MP3-Dateien (*.mp3)|*.mp3",
                 RestoreDirectory = true
             };
             if (ofd.ShowDialog(this) is DialogResult.OK)

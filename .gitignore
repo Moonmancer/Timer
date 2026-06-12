@@ -1,0 +1,14 @@
+# Build-Ausgaben werden in TimerManager/.gitignore geregelt
+
+# User-spezifische VS-Dateien
+*.user
+*.suo
+.vs/
+
+# Rider
+.idea/
+
+# Betriebssystem
+Thumbs.db
+Desktop.ini
+.DS_Store

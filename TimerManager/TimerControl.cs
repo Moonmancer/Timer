@@ -19,55 +19,50 @@ public class TimerControl : Panel
     public TimerEntry Entry => _entry;
 
     private TimerState _prevState = TimerState.Stopped;
+    private bool _blinkOn = false;
+    private int _blinkTick = 0;          // zählt Ticks für 500ms-Blinkintervall
+    private DateTime _lastAlarmAt = DateTime.MinValue;  // für 5s-Alarm-Wiederholung
 
-    // Set to true while the user is dragging this card
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool IsDragging { get; set; }
 
     private Color _cardColor = BgStopped;
     private Color _accentColor = AccentStopped;
 
-    // Card background colours per state
     private static readonly Color BgStopped = Color.FromArgb(38, 38, 46);
     private static readonly Color BgRunning = Color.FromArgb(16, 40, 18);
     private static readonly Color BgPaused = Color.FromArgb(44, 34, 12);
     private static readonly Color BgFinished = Color.FromArgb(50, 16, 16);
 
-    // Left accent strip colours per state
     private static readonly Color AccentStopped = Color.FromArgb(80, 80, 105);
     private static readonly Color AccentRunning = Color.FromArgb(40, 195, 65);
     private static readonly Color AccentPaused = Color.FromArgb(215, 155, 20);
     private static readonly Color AccentFinished = Color.FromArgb(215, 50, 50);
+
+    // Button block total width (4 buttons x 36px + 3 gaps x 4px)
+    private const int BtnBlockWidth = 4 * 36 + 3 * 4;
 
     public TimerControl(TimerEntry entry)
     {
         _entry = entry;
         DoubleBuffered = true;
 
-        Height = 92;
+        Height = 100;
         Dock = DockStyle.Top;
         Margin = new Padding(0, 0, 0, 8);
-        Padding = new Padding(14, 8, 10, 8);
         BackColor = BgStopped;
 
+        // Row 1 – Name (left, truncated) + State (right)
         _lblName = new Label
         {
             Text = entry.Name,
             ForeColor = Color.FromArgb(200, 200, 215),
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            AutoSize = true,
+            AutoSize = false,
+            AutoEllipsis = true,
             BackColor = BgStopped,
-            Location = new Point(18, 8)
-        };
-
-        _lblTime = new Label
-        {
-            Text = "00:00:00",
-            ForeColor = Color.White,
-            Font = new Font("Consolas", 22, FontStyle.Bold),
-            AutoSize = true,
-            BackColor = BgStopped,
-            Location = new Point(14, 27)
+            Location = new Point(14, 8),
+            Height = 18
         };
 
         _lblState = new Label
@@ -75,11 +70,24 @@ public class TimerControl : Panel
             Text = "",
             ForeColor = Color.FromArgb(145, 145, 165),
             Font = new Font("Segoe UI", 8),
-            AutoSize = true,
+            AutoSize = false,
             BackColor = BgStopped,
-            Location = new Point(18, 70)
+            Height = 18,
+            TextAlign = ContentAlignment.MiddleRight
         };
 
+        // Row 2 – large time display
+        _lblTime = new Label
+        {
+            Text = "00:00:00",
+            ForeColor = Color.White,
+            Font = new Font("Consolas", 22, FontStyle.Bold),
+            AutoSize = true,
+            BackColor = BgStopped,
+            Location = new Point(14, 28)
+        };
+
+        // Row 3 – buttons (bottom-left)
         _btnStartPause = CreateButton("", Color.FromArgb(35, 160, 50));
         _btnStartPause.Click += (_, _) => OnStartPause();
 
@@ -96,11 +104,10 @@ public class TimerControl : Panel
         AddHoverEffect(_btnRemove, Color.FromArgb(152, 36, 36), Color.FromArgb(195, 52, 52));
 
         Controls.AddRange([_lblName, _lblTime, _lblState, _btnStartPause, _btnReset, _btnEdit, _btnRemove]);
-        Resize += (_, _) => LayoutButtons();
-        LayoutButtons();
+        Resize += (_, _) => DoLayout();
+        DoLayout();
     }
 
-    /// <summary>Registers drag-related mouse handlers on this card and its non-button children.</summary>
     public void RegisterDragHandlers(MouseEventHandler down, MouseEventHandler move, MouseEventHandler up)
     {
         MouseDown += down;
@@ -108,7 +115,7 @@ public class TimerControl : Panel
         MouseUp += up;
         foreach (Control c in Controls)
         {
-            if (c is Button) continue; // buttons handle their own clicks
+            if (c is Button) continue;
             c.MouseDown += down;
             c.MouseMove += move;
             c.MouseUp += up;
@@ -124,7 +131,7 @@ public class TimerControl : Panel
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe MDL2 Assets", 11),
-            Height = 30,
+            Height = 28,
             Width = 36,
             Cursor = Cursors.Hand,
             TextAlign = ContentAlignment.MiddleCenter,
@@ -141,17 +148,32 @@ public class TimerControl : Panel
         btn.MouseLeave += (_, _) => btn.BackColor = normal;
     }
 
-    private void LayoutButtons()
+    private void DoLayout()
     {
-        int right = Width - 10;
-        const int btnY = 8;
-        _btnRemove.Location = new Point(right - _btnRemove.Width, btnY);
-        _btnEdit.Location = new Point(right - _btnRemove.Width - _btnEdit.Width - 4, btnY);
-        _btnReset.Location = new Point(right - _btnRemove.Width - _btnEdit.Width - _btnReset.Width - 10, btnY);
-        _btnStartPause.Location = new Point(right - _btnRemove.Width - _btnEdit.Width - _btnReset.Width - _btnStartPause.Width - 16, btnY);
+        const int left = 14;
+        const int right = 10;
+        const int row1Y = 8;
+        const int row3Y = 64;
+
+        int stateW = 70;  // fixed width for state label
+        int nameW = Width - left - stateW - right - 4;
+
+        // Row 1: Name left, State right
+        _lblName.Location = new Point(left, row1Y);
+        _lblName.Width = Math.Max(20, nameW);
+
+        _lblState.Width = stateW;
+        _lblState.Location = new Point(Width - right - stateW, row1Y);
+
+        // Row 3: buttons bottom-left
+        int x = left;
+        foreach (var btn in new[] { _btnStartPause, _btnReset, _btnEdit, _btnRemove })
+        {
+            btn.Location = new Point(x, row3Y);
+            x += btn.Width + 4;
+        }
     }
 
-    // Paint parent background colour in corners to fake rounded transparency
     protected override void OnPaintBackground(PaintEventArgs e)
         => e.Graphics.Clear(Parent?.BackColor ?? Color.FromArgb(28, 28, 28));
 
@@ -164,32 +186,24 @@ public class TimerControl : Panel
         var rect = new RectangleF(0, 0, Width - 1f, Height - 1f);
         using var path = BuildRoundedPath(rect, 10f);
 
-        // Card background
         using (var bg = new SolidBrush(_cardColor))
             g.FillPath(bg, path);
 
-        // Left accent strip (clipped to rounded rect)
         g.SetClip(path);
         using (var ab = new SolidBrush(_accentColor))
             g.FillRectangle(ab, 0, 0, 5, Height);
-
         g.ResetClip();
 
-        // Drag highlight: bright overlay + glow border
         if (IsDragging)
         {
-            // Semi-transparent white overlay to lighten the card
             using (var overlay = new SolidBrush(Color.FromArgb(30, 255, 255, 255)))
                 g.FillPath(overlay, path);
-
-            // Outer glow (wider, dimmer)
             using var glowPen = new Pen(Color.FromArgb(60, 255, 255, 255), 6f);
-            g.DrawPath(glowPen, path);
-
-            // Inner bright border
             using var borderPen = new Pen(Color.FromArgb(220, 255, 255, 255), 2f);
+            g.DrawPath(glowPen, path);
             g.DrawPath(borderPen, path);
         }
+
         base.OnPaint(e);
     }
 
@@ -220,11 +234,24 @@ public class TimerControl : Panel
 
     public new void Update()
     {
-        if (_prevState is TimerState.Running && _entry.State is TimerState.Finished)
-            PlayAlarm();
-        _prevState = _entry.State;
+        // GetDisplay() zuerst aufrufen – setzt ggf. State auf Finished
+        var displayTime = _entry.GetDisplay();
+        // Zeitanzeige: bei Finished wird sie im switch-case mit Overtime überschrieben
+        if (_entry.State is not TimerState.Finished)
+            _lblTime.Text = displayTime.ToString(@"hh\:mm\:ss");
 
-        _lblTime.Text = _entry.GetDisplay().ToString(@"hh\:mm\:ss");
+        if (_prevState is TimerState.Running && _entry.State is TimerState.Finished)
+        {
+            PlayAlarm();
+            _lastAlarmAt = DateTime.Now;
+        }
+        else if (_entry.State is TimerState.Finished
+                 && (DateTime.Now - _lastAlarmAt).TotalMilliseconds >= 5000)
+        {
+            PlayAlarm();
+            _lastAlarmAt = DateTime.Now;
+        }
+        _prevState = _entry.State;
 
         switch (_entry.State)
         {
@@ -239,18 +266,26 @@ public class TimerControl : Panel
                 _lblState.Text = "Pausiert";
                 break;
             case TimerState.Finished:
-                _cardColor = BgFinished; _accentColor = AccentFinished;
-                _btnStartPause.Text = ""; _btnStartPause.BackColor = Color.FromArgb(35, 160, 50);
-                _lblState.Text = " Fertig!";
+                // Blinken alle 500ms (jeden 2. Tick bei 250ms-Takt)
+                _blinkTick++;
+                if (_blinkTick >= 2) { _blinkOn = !_blinkOn; _blinkTick = 0; }
+                _cardColor = _blinkOn ? BgFinished : BgStopped;
+                _accentColor = AccentFinished;
+                _btnStartPause.Text = ""; _btnStartPause.BackColor = Color.FromArgb(35, 160, 50);
+                _lblState.Text = "Fertig!";
+                // Überschreitungszeit anzeigen
+                var overtime = _entry.GetOvertime();
+                _lblTime.Text = "+" + overtime.ToString(@"hh\:mm\:ss");
                 break;
             default:
+                _blinkOn = false;
+                _blinkTick = 0;
                 _cardColor = BgStopped; _accentColor = AccentStopped;
                 _btnStartPause.Text = ""; _btnStartPause.BackColor = Color.FromArgb(35, 160, 50);
                 _lblState.Text = "";
                 break;
         }
 
-        // Sync label backgrounds to card colour (prevents artefacts near rounded corners)
         _lblName.BackColor = _cardColor;
         _lblTime.BackColor = _cardColor;
         _lblState.BackColor = _cardColor;
@@ -266,10 +301,50 @@ public class TimerControl : Panel
 
     private static void PlayAlarm(string? soundPath)
     {
-        if (soundPath is not null && File.Exists(soundPath))
-            Task.Run(() => { using var p = new System.Media.SoundPlayer(soundPath); p.PlaySync(); });
-        else
-            System.Media.SystemSounds.Exclamation.Play();
+        // Audio auf separatem STA-Thread starten (nicht blockierend für UI)
+        var t = new System.Threading.Thread(() =>
+        {
+            try
+            {
+                if (soundPath is not null && File.Exists(soundPath))
+                {
+                    if (soundPath.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
+                        NativeMethods.MciPlay(soundPath);
+                    else
+                    {
+                        using var p = new System.Media.SoundPlayer(soundPath);
+                        p.PlaySync();
+                    }
+                    return;
+                }
+
+                // Eingebettete timer.mp3 extrahieren und per MCI abspielen
+                var asm = System.Reflection.Assembly.GetExecutingAssembly();
+                var resName = asm.GetManifestResourceNames()
+                                 .FirstOrDefault(n => n.EndsWith("timer.mp3", StringComparison.OrdinalIgnoreCase));
+                if (resName is not null)
+                {
+                    var tmp = Path.Combine(Path.GetTempPath(), "TimerManager_alarm.mp3");
+                    using (var src = asm.GetManifestResourceStream(resName)!)
+                    using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                        src.CopyTo(fs);
+
+                    if (!NativeMethods.MciPlay(tmp))
+                        goto fallback; // MCI konnte Datei nicht öffnen
+                    return;
+                }
+
+            fallback:
+                // Letzter Fallback: synthetisch erzeugter WAV-Beep
+                using (var ms = new System.IO.MemoryStream(SoundGenerator.CreateTimerBeep()))
+                using (var p = new System.Media.SoundPlayer(ms))
+                    p.PlaySync();
+            }
+            catch { /* Audiofehler sollen die App nicht zum Absturz bringen */ }
+        });
+        t.SetApartmentState(System.Threading.ApartmentState.STA);
+        t.IsBackground = true;
+        t.Start();
     }
 
     private void PlayAlarm() => PlayAlarm(_entry.SoundPath);

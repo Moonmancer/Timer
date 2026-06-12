@@ -4,7 +4,7 @@ namespace TimerManager;
 
 internal record TimerData(string Name, long CountdownDurationTicks, string? SoundPath);
 internal record WindowSettings(int Width, int Height, int X, int Y, bool Maximized);
-internal record AppSettings(List<TimerData> Timers, WindowSettings? Window);
+internal record AppSettings(List<TimerData> Timers, WindowSettings? Window, int Volume = 100);
 
 internal static class TimerPersistence
 {
@@ -49,6 +49,14 @@ internal static class TimerPersistence
   public static void SaveWindowSettings(WindowSettings win)
   {
     var raw = LoadRaw();
-    SaveRaw(new(raw.Timers, win));
+    SaveRaw(new(raw.Timers, win, raw.Volume));
+  }
+
+  public static int LoadVolume() => LoadRaw().Volume;
+
+  public static void SaveVolume(int volume)
+  {
+    var raw = LoadRaw();
+    SaveRaw(new(raw.Timers, raw.Window, volume));
   }
 }

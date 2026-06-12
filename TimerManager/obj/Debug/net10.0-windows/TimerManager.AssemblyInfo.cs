@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TimerManager")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2fa385ec268bd5815b5b7efabc43ed90d18c09a3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7b6e54909d9eef8bdb5ff177adf54a5804a2b78f")]
 [assembly: System.Reflection.AssemblyProductAttribute("TimerManager")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TimerManager")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
