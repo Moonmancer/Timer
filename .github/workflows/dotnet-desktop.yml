@@ -39,6 +39,10 @@ jobs:
     - name: Restore the application
       run: dotnet restore $env:Project_Path
 
+    # Test the application
+    - name: Run tests
+      run: dotnet test $env:Project_Path
+      
     # Build the application
     - name: Build the application
       run: dotnet build $env:Project_Path -c $env:Configuration
