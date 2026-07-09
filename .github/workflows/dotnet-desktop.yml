@@ -11,11 +11,10 @@ jobs:
 
   build:
 
-    strategy:
-      matrix:
-        configuration: [Debug, Release]
-
     runs-on: windows-latest
+
+    permissions:
+      contents: write
 
     env:
       Project_Path: TimerManager/TimerManager.csproj
@@ -39,20 +38,16 @@ jobs:
     # Restore the application
     - name: Restore the application
       run: dotnet restore $env:Project_Path
-      
+
     # Build the application
     - name: Build the application
-      run: dotnet build $env:Project_Path -c $env:Configuration
-      env:
-        Configuration: ${{ matrix.configuration }}
-    
+      run: dotnet build $env:Project_Path -c Release
+
     # Release new version
     - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.run_number }}
-        release_name: Release ${{ github.run_number }}
+        name: Release ${{ github.run_number }}
         draft: false
         prerelease: false
