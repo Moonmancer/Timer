@@ -39,11 +39,18 @@ jobs:
     - name: Restore the application
       run: dotnet restore $env:Project_Path
 
-    # Build the application
-    - name: Build the application
-      run: dotnet build $env:Project_Path -c Release
+    # Publish a self-contained, single-file executable
+    - name: Publish the application
+      run: >
+        dotnet publish $env:Project_Path
+        -c Release
+        -r win-x64
+        --self-contained true
+        -p:PublishSingleFile=true
+        -p:IncludeNativeLibrariesForSelfExtract=true
+        -o publish
 
-    # Release new version
+    # Release new version with the executable attached
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
@@ -51,3 +58,4 @@ jobs:
         name: Release ${{ github.run_number }}
         draft: false
         prerelease: false
+        files: publish/TimerManager.exe
