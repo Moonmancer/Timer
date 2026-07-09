@@ -288,6 +288,10 @@ public class TimerControl : Panel
                 break;
         }
 
+        // Kategorie-Farbe überschreibt den Akzentstreifen (Zustand bleibt über die Kartenfarbe sichtbar)
+        if (_entry.AccentColorArgb is int argb)
+            _accentColor = Color.FromArgb(unchecked((int)(0xFF000000u | (uint)argb)));
+
         _lblName.BackColor = _cardColor;
         _lblTime.BackColor = _cardColor;
         _lblState.BackColor = _cardColor;

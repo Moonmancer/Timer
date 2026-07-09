@@ -1,4 +1,6 @@
-﻿namespace TimerManager;
+﻿using System.Diagnostics;
+
+namespace TimerManager;
 
 public class MainForm : Form
 {
@@ -7,6 +9,8 @@ public class MainForm : Form
     private readonly System.Windows.Forms.Timer _globalTick;
     private readonly List<TimerControl> _timerControls = [];
     private readonly Label _lblEmpty;
+    private readonly Panel _updateBanner;
+    private readonly Label _lblUpdate;
 
     // Drag-to-reorder state
     private TimerControl? _dragCtrl;
@@ -141,7 +145,27 @@ public class MainForm : Form
         };
         _timerListPanel.Controls.Add(_lblEmpty);
 
+        // Update-Banner (unten, anfangs versteckt)
+        _updateBanner = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 30,
+            BackColor = Color.FromArgb(0, 100, 180),
+            Cursor = Cursors.Hand,
+            Visible = false
+        };
+        _lblUpdate = new Label
+        {
+            Dock = DockStyle.Fill,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleCenter,
+            Cursor = Cursors.Hand
+        };
+        _updateBanner.Controls.Add(_lblUpdate);
+
         Controls.Add(_timerListPanel);
+        Controls.Add(_updateBanner);
         Controls.Add(toolbar);
 
         // Global tick – aktualisiert alle Timer gleichzeitig
@@ -167,13 +191,43 @@ public class MainForm : Form
         {
             StartPosition = FormStartPosition.CenterScreen;
         }
+
+        // Im Hintergrund auf neue Version prüfen
+        _ = CheckForUpdatesAsync();
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        int current = UpdateChecker.CurrentVersion;
+        if (current <= 0) return;  // lokaler Dev-Build ohne Versionsstempel
+
+        var info = await UpdateChecker.CheckAsync();
+        if (info is null || info.Version <= current || IsDisposed) return;
+
+        BeginInvoke(() =>
+        {
+            _lblUpdate.Text = $"⬇  Update verfügbar (v{info.Version}) – klicken zum Herunterladen";
+            _updateBanner.Visible = true;
+
+            void Open(object? _, EventArgs __)
+            {
+                try { Process.Start(new ProcessStartInfo(info.HtmlUrl) { UseShellExecute = true }); }
+                catch { /* Browser konnte nicht geöffnet werden */ }
+            }
+            _updateBanner.Click += Open;
+            _lblUpdate.Click += Open;
+        });
     }
 
     private void AddTimer()
     {
         using var dlg = new AddTimerDialog();
         if (dlg.ShowDialog(this) is not DialogResult.OK) return;
-        AddTimerControl(new TimerEntry(dlg.TimerName, dlg.CountdownDuration) { SoundPath = dlg.SoundPath });
+        AddTimerControl(new TimerEntry(dlg.TimerName, dlg.CountdownDuration)
+        {
+            SoundPath = dlg.SoundPath,
+            AccentColorArgb = dlg.AccentColorArgb
+        });
         Save();
     }
 
@@ -273,6 +327,7 @@ public class MainForm : Form
         ctrl.Entry.Name = dlg.TimerName;
         ctrl.Entry.CountdownDuration = dlg.CountdownDuration;
         ctrl.Entry.SoundPath = dlg.SoundPath;
+        ctrl.Entry.AccentColorArgb = dlg.AccentColorArgb;
         ctrl.Entry.Reset();
         ctrl.RefreshAfterEdit();
         Save();
@@ -293,6 +348,33 @@ public class MainForm : Form
     {
         foreach (var ctrl in _timerControls)
             ctrl.Update();
+        UpdateWindowTitle();
+    }
+
+    private const string BaseTitle = "Timer Manager";
+
+    private void UpdateWindowTitle()
+    {
+        // Priorität: abgelaufene Timer, dann laufende mit kürzester Restzeit
+        var finished = _timerControls.FirstOrDefault(c => c.Entry.State is TimerState.Finished);
+        if (finished is not null)
+        {
+            Text = $"⏰ Fertig: {finished.Entry.Name} – {BaseTitle}";
+            return;
+        }
+
+        TimerControl? soonest = null;
+        var best = TimeSpan.MaxValue;
+        foreach (var c in _timerControls)
+        {
+            if (c.Entry.State is not TimerState.Running) continue;
+            var rem = c.Entry.GetDisplay();
+            if (rem < best) { best = rem; soonest = c; }
+        }
+
+        Text = soonest is not null
+            ? $"⏱ {best:hh\\:mm\\:ss} – {soonest.Entry.Name}"
+            : BaseTitle;
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)

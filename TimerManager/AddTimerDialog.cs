@@ -12,7 +12,14 @@ public class AddTimerDialog : Form
     private readonly Button _btnCancel;
     private bool _normalizing;
 
+    private readonly List<Button> _colorSwatches = [];
+    private int? _selectedColorArgb;
+
     private const string DefaultSoundLabel = "(Standard)";
+
+    // Palette: null = keine (zustandsabhängige Standardfarbe), sonst RGB
+    private static readonly int?[] Palette =
+        [null, 0xE84B4B, 0xE8862B, 0xE8C020, 0x37C341, 0x2BC0B0, 0x3B8CE8, 0x9B5BE8, 0xE85BB0];
 
     public string TimerName => _txtName.Text.Trim();
     public TimeSpan CountdownDuration =>
@@ -20,11 +27,12 @@ public class AddTimerDialog : Form
         TimeSpan.FromMinutes((double)_numMinutes.Value) +
         TimeSpan.FromSeconds((double)_numSeconds.Value);
     public string? SoundPath => _txtSoundPath.Text == DefaultSoundLabel ? null : _txtSoundPath.Text;
+    public int? AccentColorArgb => _selectedColorArgb;
 
     public AddTimerDialog(TimerEntry? existing = null)
     {
         Text = "Neuen Timer hinzufügen";
-        Size = new Size(370, 278);
+        Size = new Size(370, 344);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -103,6 +111,30 @@ public class AddTimerDialog : Form
             _txtSoundPath.ForeColor = Color.LightGray;
         };
 
+        // ── FARBE ─────────────────────────────────────────
+        var lblColor = MakeSection("FARBE", new Point(16, 190));
+        int sx = 16;
+        foreach (var argb in Palette)
+        {
+            var swatch = new Button
+            {
+                Location = new Point(sx, 209),
+                Size = new Size(30, 26),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Text = argb is null ? "–" : "",
+                ForeColor = Color.White,
+                BackColor = argb is null
+                    ? Color.FromArgb(70, 70, 70)
+                    : Color.FromArgb(unchecked((int)(0xFF000000u | (uint)argb.Value))),
+                Tag = argb
+            };
+            swatch.FlatAppearance.BorderSize = 0;
+            swatch.Click += (s, _) => SelectColor((Button)s!);
+            _colorSwatches.Add(swatch);
+            sx += 34;
+        }
+
         // ── FOOTER ────────────────────────────────────────
         var footer = new Panel
         {
@@ -143,7 +175,10 @@ public class AddTimerDialog : Form
         CancelButton = _btnCancel;
         Controls.AddRange([lblName, _txtName, lblDauer,
                            _numHours, lblH, _numMinutes, lblM, _numSeconds, lblS,
-                           lblAlarm, _txtSoundPath, _btnBrowse, footer]);
+                           lblAlarm, _txtSoundPath, _btnBrowse, lblColor, footer]);
+        Controls.AddRange(_colorSwatches.ToArray());
+
+        SelectColor(_colorSwatches[0]);  // Standard: keine Farbe
 
         if (existing is not null)
         {
@@ -158,6 +193,19 @@ public class AddTimerDialog : Form
                 _txtSoundPath.Text = existing.SoundPath;
                 _txtSoundPath.ForeColor = Color.White;
             }
+            var match = _colorSwatches.FirstOrDefault(b => (int?)b.Tag == existing.AccentColorArgb);
+            SelectColor(match ?? _colorSwatches[0]);
+        }
+    }
+
+    private void SelectColor(Button chosen)
+    {
+        _selectedColorArgb = (int?)chosen.Tag;
+        foreach (var b in _colorSwatches)
+        {
+            bool sel = ReferenceEquals(b, chosen);
+            b.FlatAppearance.BorderColor = Color.White;
+            b.FlatAppearance.BorderSize = sel ? 3 : 0;
         }
     }
 

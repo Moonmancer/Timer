@@ -8,6 +8,8 @@ public class TimerEntry
     public string Name { get; set; }
     public TimeSpan CountdownDuration { get; set; }
     public string? SoundPath { get; set; }
+    /// <summary>Optionale Kategorie-/Akzentfarbe als ARGB-Wert; null = zustandsabhängige Standardfarbe.</summary>
+    public int? AccentColorArgb { get; set; }
 
     private TimeSpan _elapsed = TimeSpan.Zero;
     private DateTime _startedAt;
