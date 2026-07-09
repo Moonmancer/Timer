@@ -182,6 +182,7 @@ public class MainForm : Form
         var ctrl = new TimerControl(entry);
         ctrl.RemoveRequested += (s, _) => RemoveTimer((TimerControl)s!);
         ctrl.EditRequested += (s, _) => EditTimer((TimerControl)s!);
+        ctrl.StateChanged += (_, _) => Save();
         ctrl.RegisterDragHandlers(TimerDrag_MouseDown, TimerDrag_MouseMove, TimerDrag_MouseUp);
 
         _timerControls.Insert(0, ctrl);
@@ -297,6 +298,7 @@ public class MainForm : Form
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         _globalTick.Stop();
+        Save();  // aktuellen Laufzeit-Zustand aller Timer sichern
         var bounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
         TimerPersistence.SaveWindowSettings(new(
             bounds.Width, bounds.Height, bounds.X, bounds.Y,

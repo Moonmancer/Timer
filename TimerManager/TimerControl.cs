@@ -15,6 +15,7 @@ public class TimerControl : Panel
 
     public event EventHandler? RemoveRequested;
     public event EventHandler? EditRequested;
+    public event EventHandler? StateChanged;
 
     public TimerEntry Entry => _entry;
 
@@ -92,7 +93,7 @@ public class TimerControl : Panel
         _btnStartPause.Click += (_, _) => OnStartPause();
 
         _btnReset = CreateButton("", Color.FromArgb(58, 58, 72));
-        _btnReset.Click += (_, _) => { _entry.Reset(); Update(); };
+        _btnReset.Click += (_, _) => { _entry.Reset(); Update(); StateChanged?.Invoke(this, EventArgs.Empty); };
         AddHoverEffect(_btnReset, Color.FromArgb(58, 58, 72), Color.FromArgb(82, 82, 100));
 
         _btnEdit = CreateButton("", Color.FromArgb(40, 82, 152));
@@ -230,6 +231,7 @@ public class TimerControl : Panel
             _entry.Start();
         }
         Update();
+        StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public new void Update()

@@ -16,6 +16,27 @@ public class TimerEntry
 
     public TimerState State => _state;
 
+    // ── Persistenz: Rohzustand auslesen/wiederherstellen ──────────────
+    /// <summary>Verstrichene Zeit ohne das aktuell laufende Segment (Rohfeld).</summary>
+    public TimeSpan ElapsedRaw => _elapsed;
+    /// <summary>Absoluter Zeitpunkt, an dem das aktuelle Lauf-Segment gestartet wurde.</summary>
+    public DateTime StartedAt => _startedAt;
+    /// <summary>Absoluter Zeitpunkt, an dem der Timer abgelaufen ist.</summary>
+    public DateTime FinishedAt => _finishedAt;
+
+    /// <summary>
+    /// Stellt einen gespeicherten Laufzeit-Zustand wieder her. Für einen laufenden
+    /// Timer wird <paramref name="startedAt"/> als absoluter Zeitpunkt übernommen, sodass
+    /// die Zeit auch während geschlossener App weiterläuft (Wanduhr-Verhalten).
+    /// </summary>
+    public void Restore(TimerState state, TimeSpan elapsed, DateTime startedAt, DateTime finishedAt)
+    {
+        _state = state;
+        _elapsed = elapsed;
+        _startedAt = startedAt;
+        _finishedAt = finishedAt;
+    }
+
     public TimerEntry(string name, TimeSpan countdownDuration = default)
     {
         Name = name;

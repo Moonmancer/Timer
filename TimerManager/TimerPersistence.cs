@@ -2,7 +2,14 @@ using System.Text.Json;
 
 namespace TimerManager;
 
-internal record TimerData(string Name, long CountdownDurationTicks, string? SoundPath);
+internal record TimerData(
+    string Name,
+    long CountdownDurationTicks,
+    string? SoundPath,
+    TimerState State = TimerState.Stopped,
+    long ElapsedTicks = 0,
+    DateTime? StartedAt = null,
+    DateTime? FinishedAt = null);
 internal record WindowSettings(int Width, int Height, int X, int Y, bool Maximized);
 internal record AppSettings(List<TimerData> Timers, WindowSettings? Window, int Volume = 100);
 
@@ -36,12 +43,22 @@ internal static class TimerPersistence
 
   public static List<TimerEntry> Load() =>
       LoadRaw().Timers.ConvertAll(d =>
-          new TimerEntry(d.Name, TimeSpan.FromTicks(d.CountdownDurationTicks)) { SoundPath = d.SoundPath });
+      {
+        var entry = new TimerEntry(d.Name, TimeSpan.FromTicks(d.CountdownDurationTicks)) { SoundPath = d.SoundPath };
+        entry.Restore(d.State, TimeSpan.FromTicks(d.ElapsedTicks),
+                      d.StartedAt ?? default, d.FinishedAt ?? default);
+        return entry;
+      });
 
   public static void Save(IEnumerable<TimerEntry> entries)
   {
-    var data = entries.Select(e => new TimerData(e.Name, e.CountdownDuration.Ticks, e.SoundPath)).ToList();
-    SaveRaw(new(data, LoadRaw().Window));
+    var raw = LoadRaw();
+    var data = entries.Select(e => new TimerData(
+        e.Name, e.CountdownDuration.Ticks, e.SoundPath,
+        e.State, e.ElapsedRaw.Ticks,
+        e.State is TimerState.Running ? e.StartedAt : null,
+        e.State is TimerState.Finished ? e.FinishedAt : null)).ToList();
+    SaveRaw(new(data, raw.Window, raw.Volume));
   }
 
   public static WindowSettings? LoadWindowSettings() => LoadRaw().Window;
