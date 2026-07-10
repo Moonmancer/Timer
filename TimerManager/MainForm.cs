@@ -221,7 +221,7 @@ public class MainForm : Form
 
     private void AddTimer()
     {
-        using var dlg = new AddTimerDialog();
+        using var dlg = new AddTimerDialog { TopMost = TopMost };
         if (dlg.ShowDialog(this) is not DialogResult.OK) return;
         AddTimerControl(new TimerEntry(dlg.TimerName, dlg.CountdownDuration)
         {
@@ -322,7 +322,7 @@ public class MainForm : Form
 
     private void EditTimer(TimerControl ctrl)
     {
-        using var dlg = new AddTimerDialog(ctrl.Entry);
+        using var dlg = new AddTimerDialog(ctrl.Entry) { TopMost = TopMost };
         if (dlg.ShowDialog(this) is not DialogResult.OK) return;
         ctrl.Entry.Name = dlg.TimerName;
         ctrl.Entry.CountdownDuration = dlg.CountdownDuration;
