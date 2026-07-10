@@ -187,6 +187,11 @@ public class MainForm : Form
                 Location = new Point(win.X, win.Y);
             if (win.Maximized)
                 WindowState = FormWindowState.Maximized;
+            if (win.TopMost)
+            {
+                TopMost = true;
+                _btnPin.BackColor = Color.FromArgb(0, 100, 180);
+            }
         }
         else
         {
@@ -419,7 +424,7 @@ public class MainForm : Form
         var bounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
         TimerPersistence.SaveWindowSettings(new(
             bounds.Width, bounds.Height, bounds.X, bounds.Y,
-            WindowState == FormWindowState.Maximized));
+            WindowState == FormWindowState.Maximized, TopMost));
         base.OnFormClosed(e);
     }
 }

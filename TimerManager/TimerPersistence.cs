@@ -11,7 +11,7 @@ internal record TimerData(
     DateTime? StartedAt = null,
     DateTime? FinishedAt = null,
     int? AccentColorArgb = null);
-internal record WindowSettings(int Width, int Height, int X, int Y, bool Maximized);
+internal record WindowSettings(int Width, int Height, int X, int Y, bool Maximized, bool TopMost = false);
 internal record AppSettings(List<TimerData> Timers, WindowSettings? Window, int Volume = 100);
 
 internal static class TimerPersistence
