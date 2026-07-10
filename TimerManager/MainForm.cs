@@ -11,6 +11,7 @@ public class MainForm : Form
     private readonly Label _lblEmpty;
     private readonly Panel _updateBanner;
     private readonly Label _lblUpdate;
+    private bool _closeConfirmed;
 
     // Drag-to-reorder state
     private TimerControl? _dragCtrl;
@@ -192,7 +193,7 @@ public class MainForm : Form
             StartPosition = FormStartPosition.CenterScreen;
         }
 
-        // Im Hintergrund auf neue Version prüfen
+        // Beim Start im Hintergrund auf neue Version prüfen
         _ = CheckForUpdatesAsync();
     }
 
@@ -375,6 +376,40 @@ public class MainForm : Form
         Text = soonest is not null
             ? $"⏱ {best:hh\\:mm\\:ss} – {soonest.Entry.Name}"
             : BaseTitle;
+    }
+
+    protected override async void OnFormClosing(FormClosingEventArgs e)
+    {
+        base.OnFormClosing(e);
+        if (e.Cancel || _closeConfirmed) return;
+
+        // Bei Windows-Herunterfahren / Task-Manager nicht aufhalten
+        if (e.CloseReason is CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing) return;
+
+        int current = UpdateChecker.CurrentVersion;
+        if (current <= 0) return;  // lokaler Dev-Build ohne Versionsstempel → sofort schließen
+
+        // Schließen kurz aufschieben, um einmalig auf ein Update zu prüfen (max. 3 s)
+        e.Cancel = true;
+
+        var checkTask = UpdateChecker.CheckAsync();
+        var finished = await Task.WhenAny(checkTask, Task.Delay(3000));
+        var info = finished == checkTask ? checkTask.Result : null;
+
+        if (info is not null && info.Version > current)
+        {
+            var answer = MessageBox.Show(this,
+                $"Eine neue Version (v{info.Version}) ist verfügbar.\n\nJetzt die Download-Seite öffnen?",
+                "Update verfügbar", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (answer is DialogResult.Yes)
+            {
+                try { Process.Start(new ProcessStartInfo(info.HtmlUrl) { UseShellExecute = true }); }
+                catch { /* Browser konnte nicht geöffnet werden */ }
+            }
+        }
+
+        _closeConfirmed = true;
+        Close();  // jetzt tatsächlich schließen
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)

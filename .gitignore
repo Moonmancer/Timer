@@ -1,14 +1,17 @@
-# Build-Ausgaben werden in TimerManager/.gitignore geregelt
+# ── .NET Build-Ausgaben ───────────────────────────────
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+publish/
 
-# User-spezifische VS-Dateien
+# ── User-spezifische / IDE-Dateien ────────────────────
 *.user
 *.suo
 .vs/
-
-# Rider
 .idea/
+*.userprefs
 
-# Betriebssystem
+# ── Betriebssystem ────────────────────────────────────
 Thumbs.db
 Desktop.ini
 .DS_Store
