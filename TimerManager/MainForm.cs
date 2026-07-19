@@ -351,20 +351,20 @@ public class MainForm : Form
 
     private void Save() => TimerPersistence.Save(_timerControls.Select(c => c.Entry));
 
-    /// <summary>Holt das Fenster in den Vordergrund (z. B. wenn ein Timer abläuft).</summary>
+    /// <summary>
+    /// Hebt das Fenster in den Vordergrund (z. B. wenn ein Timer abläuft), ohne
+    /// den Tastatur-Fokus an sich zu reißen. Das kurze TopMost-Umschalten setzt
+    /// die Z-Reihenfolge nach oben (SWP_NOACTIVATE), aktiviert das Fenster aber nicht.
+    /// </summary>
     private void BringToForeground()
     {
         if (WindowState == FormWindowState.Minimized)
             WindowState = FormWindowState.Normal;
 
-        Show();
-        // Kurzes TopMost-Umschalten hebt das Fenster zuverlässig über andere Fenster;
-        // ist der Pin aktiv, bleibt TopMost ohnehin erhalten.
+        // Ist der Pin aktiv, bleibt TopMost ohnehin erhalten.
         bool wasTopMost = TopMost;
         TopMost = true;
         TopMost = wasTopMost;
-        Activate();
-        BringToFront();
     }
 
     private void RefreshAll()
