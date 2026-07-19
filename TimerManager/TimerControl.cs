@@ -16,6 +16,7 @@ public class TimerControl : Panel
     public event EventHandler? RemoveRequested;
     public event EventHandler? EditRequested;
     public event EventHandler? StateChanged;
+    public event EventHandler? Finished;
 
     public TimerEntry Entry => _entry;
 
@@ -246,6 +247,7 @@ public class TimerControl : Panel
         {
             PlayAlarm();
             _lastAlarmAt = DateTime.Now;
+            Finished?.Invoke(this, EventArgs.Empty);
         }
         else if (_entry.State is TimerState.Finished
                  && (DateTime.Now - _lastAlarmAt).TotalMilliseconds >= 5000)

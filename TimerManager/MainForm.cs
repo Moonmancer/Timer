@@ -243,6 +243,7 @@ public class MainForm : Form
         ctrl.RemoveRequested += (s, _) => RemoveTimer((TimerControl)s!);
         ctrl.EditRequested += (s, _) => EditTimer((TimerControl)s!);
         ctrl.StateChanged += (_, _) => Save();
+        ctrl.Finished += (_, _) => BringToForeground();
         ctrl.RegisterDragHandlers(TimerDrag_MouseDown, TimerDrag_MouseMove, TimerDrag_MouseUp);
 
         _timerControls.Insert(0, ctrl);
@@ -349,6 +350,22 @@ public class MainForm : Form
     }
 
     private void Save() => TimerPersistence.Save(_timerControls.Select(c => c.Entry));
+
+    /// <summary>Holt das Fenster in den Vordergrund (z. B. wenn ein Timer abläuft).</summary>
+    private void BringToForeground()
+    {
+        if (WindowState == FormWindowState.Minimized)
+            WindowState = FormWindowState.Normal;
+
+        Show();
+        // Kurzes TopMost-Umschalten hebt das Fenster zuverlässig über andere Fenster;
+        // ist der Pin aktiv, bleibt TopMost ohnehin erhalten.
+        bool wasTopMost = TopMost;
+        TopMost = true;
+        TopMost = wasTopMost;
+        Activate();
+        BringToFront();
+    }
 
     private void RefreshAll()
     {
