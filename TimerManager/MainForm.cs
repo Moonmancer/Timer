@@ -400,6 +400,18 @@ public class MainForm : Form
             : BaseTitle;
     }
 
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        // TopMost aus dem Konstruktor greift nicht immer zuverlässig, solange das
+        // Fenster noch nicht angezeigt ist. Nach dem Anzeigen erneut erzwingen.
+        if (TopMost)
+        {
+            TopMost = false;
+            TopMost = true;
+        }
+    }
+
     protected override async void OnFormClosing(FormClosingEventArgs e)
     {
         base.OnFormClosing(e);
