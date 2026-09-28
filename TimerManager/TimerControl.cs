@@ -9,6 +9,8 @@ public class TimerControl : Panel
     private readonly Label _lblTime;
     private readonly Label _lblState;
     private readonly Button _btnStartPause;
+    private readonly Button _btnMinus;
+    private readonly Button _btnPlus;
     private readonly Button _btnReset;
     private readonly Button _btnEdit;
     private readonly Button _btnRemove;
@@ -41,8 +43,8 @@ public class TimerControl : Panel
     private static readonly Color AccentPaused = Color.FromArgb(215, 155, 20);
     private static readonly Color AccentFinished = Color.FromArgb(215, 50, 50);
 
-    // Button block total width (4 buttons x 36px + 3 gaps x 4px)
-    private const int BtnBlockWidth = 4 * 36 + 3 * 4;
+    // Button block total width (6 buttons x 36px + 5 gaps x 4px)
+    private const int BtnBlockWidth = 6 * 36 + 5 * 4;
 
     public TimerControl(TimerEntry entry)
     {
@@ -93,6 +95,17 @@ public class TimerControl : Panel
         _btnStartPause = CreateButton("", Color.FromArgb(35, 160, 50));
         _btnStartPause.Click += (_, _) => OnStartPause();
 
+        // −1 / +1 Minute: verschiebt die Restzeit eines laufenden Timers, ohne die Dauer zu ändern
+        _btnMinus = CreateButton("-1", Color.FromArgb(48, 58, 74));
+        _btnMinus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+        _btnMinus.Click += (_, _) => AdjustTime(TimeSpan.FromMinutes(-1));
+        AddHoverEffect(_btnMinus, Color.FromArgb(48, 58, 74), Color.FromArgb(70, 84, 106));
+
+        _btnPlus = CreateButton("+1", Color.FromArgb(48, 58, 74));
+        _btnPlus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+        _btnPlus.Click += (_, _) => AdjustTime(TimeSpan.FromMinutes(1));
+        AddHoverEffect(_btnPlus, Color.FromArgb(48, 58, 74), Color.FromArgb(70, 84, 106));
+
         _btnReset = CreateButton("", Color.FromArgb(58, 58, 72));
         _btnReset.Click += (_, _) => { _entry.Reset(); Update(); StateChanged?.Invoke(this, EventArgs.Empty); };
         AddHoverEffect(_btnReset, Color.FromArgb(58, 58, 72), Color.FromArgb(82, 82, 100));
@@ -105,9 +118,17 @@ public class TimerControl : Panel
         _btnRemove.Click += (_, _) => RemoveRequested?.Invoke(this, EventArgs.Empty);
         AddHoverEffect(_btnRemove, Color.FromArgb(152, 36, 36), Color.FromArgb(195, 52, 52));
 
-        Controls.AddRange([_lblName, _lblTime, _lblState, _btnStartPause, _btnReset, _btnEdit, _btnRemove]);
+        Controls.AddRange([_lblName, _lblTime, _lblState,
+            _btnStartPause, _btnMinus, _btnPlus, _btnReset, _btnEdit, _btnRemove]);
         Resize += (_, _) => DoLayout();
         DoLayout();
+    }
+
+    private void AdjustTime(TimeSpan delta)
+    {
+        _entry.AdjustRemaining(delta);
+        Update();
+        StateChanged?.Invoke(this, EventArgs.Empty);  // angepasste Restzeit persistieren
     }
 
     public void RegisterDragHandlers(MouseEventHandler down, MouseEventHandler move, MouseEventHandler up)
@@ -169,7 +190,7 @@ public class TimerControl : Panel
 
         // Row 3: buttons bottom-left
         int x = left;
-        foreach (var btn in new[] { _btnStartPause, _btnReset, _btnEdit, _btnRemove })
+        foreach (var btn in new[] { _btnStartPause, _btnMinus, _btnPlus, _btnReset, _btnEdit, _btnRemove })
         {
             btn.Location = new Point(x, row3Y);
             x += btn.Width + 4;
@@ -289,6 +310,11 @@ public class TimerControl : Panel
                 _lblState.Text = "";
                 break;
         }
+
+        // −1/+1 nur sinnvoll, solange der Timer läuft oder pausiert ist
+        bool canAdjust = _entry.State is TimerState.Running or TimerState.Paused;
+        _btnMinus.Enabled = canAdjust;
+        _btnPlus.Enabled = canAdjust;
 
         // Kategorie-Farbe überschreibt den Akzentstreifen (Zustand bleibt über die Kartenfarbe sichtbar)
         if (_entry.AccentColorArgb is int argb)

@@ -66,6 +66,19 @@ public class TimerEntry
         _state = TimerState.Stopped;
     }
 
+    /// <summary>
+    /// Verschiebt die verbleibende Zeit eines laufenden oder pausierten Timers um
+    /// <paramref name="delta"/> (positiv = mehr Restzeit, negativ = weniger), ohne die
+    /// gespeicherte <see cref="CountdownDuration"/> zu verändern. Ein Reset stellt daher
+    /// wieder die volle Dauer her. Bei gestoppten/abgelaufenen Timern wirkungslos.
+    /// </summary>
+    public void AdjustRemaining(TimeSpan delta)
+    {
+        if (_state is not (TimerState.Running or TimerState.Paused)) return;
+        // Restzeit = CountdownDuration - Elapsed  →  mehr Restzeit bedeutet weniger Elapsed
+        _elapsed -= delta;
+    }
+
     /// <summary>Gibt zurück, wie lange der Timer bereits abgelaufen ist (nur im Zustand Finished).</summary>
     public TimeSpan GetOvertime()
         => _state is TimerState.Finished ? DateTime.Now - _finishedAt : TimeSpan.Zero;
