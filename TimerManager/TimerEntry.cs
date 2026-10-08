@@ -104,10 +104,13 @@ public class TimerEntry
 
     public void Reset()
     {
+        var remaining = CountdownDuration - GetElapsed();  // Restzeit vor dem Zurücksetzen (ohne Seiteneffekt)
+        if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
+
         _elapsed = TimeSpan.Zero;
         _finishedAt = default;
         _state = TimerState.Stopped;
-        Log("Zurückgesetzt");
+        Log($"Zurückgesetzt (Rest {remaining:hh\\:mm\\:ss})");
     }
 
     /// <summary>
