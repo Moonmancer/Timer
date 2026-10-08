@@ -20,6 +20,10 @@ public class TimerEntry
 
     // ── Aktions-Historie (letzte 5, nur im Speicher) ──────────────────
     private readonly List<(DateTime Time, string Text)> _log = [];
+    private bool _adjustGroupActive;   // true, solange der jüngste Eintrag eine Minuten-Anpassung ist
+    private int _adjustGroupMinutes;   // aufsummierte Minuten der laufenden Anpassungs-Gruppe
+    private DateTime _lastAdjustTime;  // Zeitpunkt der letzten Minuten-Anpassung
+
     /// <summary>Die letzten (max. 5) Aktionen mit Zeitstempel, älteste zuerst.</summary>
     public IReadOnlyList<(DateTime Time, string Text)> ActionLog => _log;
 
@@ -27,7 +31,33 @@ public class TimerEntry
     {
         _log.Add((DateTime.Now, action));
         if (_log.Count > 5) _log.RemoveAt(0);
+        _adjustGroupActive = false;  // jede andere Aktion beendet eine Anpassungs-Gruppe
     }
+
+    /// <summary>
+    /// Protokolliert eine Minuten-Anpassung. Aufeinanderfolgende Anpassungen werden zu
+    /// einem Eintrag zusammengefasst, solange jede höchstens 3 s nach der vorherigen erfolgt.
+    /// </summary>
+    private void LogAdjustment(int minutes)
+    {
+        var now = DateTime.Now;
+        if (_adjustGroupActive && _log.Count > 0 && now - _lastAdjustTime <= TimeSpan.FromSeconds(3))
+        {
+            _adjustGroupMinutes += minutes;
+            _lastAdjustTime = now;
+            _log[^1] = (now, FormatAdjust(_adjustGroupMinutes));  // Summe im selben Eintrag aktualisieren
+        }
+        else
+        {
+            _adjustGroupMinutes = minutes;
+            _lastAdjustTime = now;
+            Log(FormatAdjust(minutes));   // setzt _adjustGroupActive = false …
+            _adjustGroupActive = true;    // … und startet hier eine neue Gruppe
+        }
+    }
+
+    private static string FormatAdjust(int minutes) =>
+        minutes > 0 ? $"+{minutes} Min" : minutes < 0 ? $"-{Math.Abs(minutes)} Min" : "±0 Min";
 
     // ── Persistenz: Rohzustand auslesen/wiederherstellen ──────────────
     /// <summary>Verstrichene Zeit ohne das aktuell laufende Segment (Rohfeld).</summary>
@@ -91,8 +121,7 @@ public class TimerEntry
         if (_state is not (TimerState.Running or TimerState.Paused)) return;
         // Restzeit = CountdownDuration - Elapsed  →  mehr Restzeit bedeutet weniger Elapsed
         _elapsed -= delta;
-        int mins = (int)Math.Round(delta.TotalMinutes);
-        Log(mins >= 0 ? $"+{mins} Min" : $"-{Math.Abs(mins)} Min");
+        LogAdjustment((int)Math.Round(delta.TotalMinutes));
     }
 
     /// <summary>Gibt zurück, wie lange der Timer bereits abgelaufen ist (nur im Zustand Finished).</summary>
