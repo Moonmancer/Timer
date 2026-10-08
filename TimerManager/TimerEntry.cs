@@ -18,6 +18,17 @@ public class TimerEntry
 
     public TimerState State => _state;
 
+    // ── Aktions-Historie (letzte 5, nur im Speicher) ──────────────────
+    private readonly List<(DateTime Time, string Text)> _log = [];
+    /// <summary>Die letzten (max. 5) Aktionen mit Zeitstempel, älteste zuerst.</summary>
+    public IReadOnlyList<(DateTime Time, string Text)> ActionLog => _log;
+
+    private void Log(string action)
+    {
+        _log.Add((DateTime.Now, action));
+        if (_log.Count > 5) _log.RemoveAt(0);
+    }
+
     // ── Persistenz: Rohzustand auslesen/wiederherstellen ──────────────
     /// <summary>Verstrichene Zeit ohne das aktuell laufende Segment (Rohfeld).</summary>
     public TimeSpan ElapsedRaw => _elapsed;
@@ -50,6 +61,7 @@ public class TimerEntry
         if (_state is TimerState.Running) return;
         _startedAt = DateTime.Now;
         _state = TimerState.Running;
+        Log("Gestartet");
     }
 
     public void Pause()
@@ -57,6 +69,7 @@ public class TimerEntry
         if (_state is not TimerState.Running) return;
         _elapsed += DateTime.Now - _startedAt;
         _state = TimerState.Paused;
+        Log("Pausiert");
     }
 
     public void Reset()
@@ -64,6 +77,7 @@ public class TimerEntry
         _elapsed = TimeSpan.Zero;
         _finishedAt = default;
         _state = TimerState.Stopped;
+        Log("Zurückgesetzt");
     }
 
     /// <summary>
@@ -77,6 +91,8 @@ public class TimerEntry
         if (_state is not (TimerState.Running or TimerState.Paused)) return;
         // Restzeit = CountdownDuration - Elapsed  →  mehr Restzeit bedeutet weniger Elapsed
         _elapsed -= delta;
+        int mins = (int)Math.Round(delta.TotalMinutes);
+        Log(mins >= 0 ? $"+{mins} Min" : $"-{Math.Abs(mins)} Min");
     }
 
     /// <summary>Gibt zurück, wie lange der Timer bereits abgelaufen ist (nur im Zustand Finished).</summary>
@@ -100,6 +116,7 @@ public class TimerEntry
                 _elapsed += DateTime.Now - _startedAt;
                 _finishedAt = DateTime.Now;
                 _state = TimerState.Finished;
+                Log("Abgelaufen");
             }
             return TimeSpan.Zero;
         }

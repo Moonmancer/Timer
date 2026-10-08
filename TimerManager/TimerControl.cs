@@ -22,6 +22,9 @@ public class TimerControl : Panel
 
     public TimerEntry Entry => _entry;
 
+    private readonly ToolTip _toolTip = new() { AutoPopDelay = 15000, InitialDelay = 350, ReshowDelay = 100 };
+    private string _lastTip = "";
+
     private TimerState _prevState = TimerState.Stopped;
     private bool _blinkOn = false;
     private int _blinkTick = 0;          // zählt Ticks für 500ms-Blinkintervall
@@ -129,6 +132,29 @@ public class TimerControl : Panel
         _entry.AdjustRemaining(delta);
         Update();
         StateChanged?.Invoke(this, EventArgs.Empty);  // angepasste Restzeit persistieren
+    }
+
+    /// <summary>Zeigt die letzten 5 Aktionen (neueste zuerst) im Tooltip der Karte.</summary>
+    private void UpdateTooltip()
+    {
+        string tip = _entry.ActionLog.Count == 0
+            ? "Letzte Aktionen:\n(noch keine)"
+            : "Letzte Aktionen:\n" + string.Join('\n',
+                _entry.ActionLog.Reverse().Select(a => $"{a.Time:HH:mm:ss}  {a.Text}"));
+
+        if (tip == _lastTip) return;  // nur bei Änderung setzen (verhindert Flackern)
+        _lastTip = tip;
+
+        _toolTip.SetToolTip(this, tip);
+        _toolTip.SetToolTip(_lblName, tip);
+        _toolTip.SetToolTip(_lblTime, tip);
+        _toolTip.SetToolTip(_lblState, tip);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _toolTip.Dispose();
+        base.Dispose(disposing);
     }
 
     public void RegisterDragHandlers(MouseEventHandler down, MouseEventHandler move, MouseEventHandler up)
@@ -324,6 +350,7 @@ public class TimerControl : Panel
         _lblTime.BackColor = _cardColor;
         _lblState.BackColor = _cardColor;
 
+        UpdateTooltip();
         Invalidate();
     }
 
